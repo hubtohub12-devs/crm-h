@@ -37,6 +37,11 @@ export async function requestPasswordReset(email: string) {
   await api.post('/auth/forgot', { email }, PUBLIC);
 }
 
+/** Confirms a new account with the code from the sign-up email; signs the person in. */
+export async function verifyEmailCode(email: string, code: string): Promise<VerifyResult> {
+  return toSession(await api.post<Raw>('/auth/verify', { email, code }, PUBLIC));
+}
+
 export async function resendVerification(email: string) {
   await api.post('/auth/resend', { email }, PUBLIC);
 }

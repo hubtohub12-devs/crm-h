@@ -75,6 +75,17 @@ export const resend = route(async (req) => {
   return json({ sent: true });
 });
 
+/** Confirms a new account with the code from the sign-up email and signs the person in. */
+export const verifyEmail = route(async (req) => {
+  const b = await readJson(req, z.object({ email, code: z.string().trim().regex(/^\d{6,10}$/, 'Enter the code from the email') }));
+  const s = await gotrue().verifyEmailCode(b.email, b.code);
+  const name = typeof s.user.user_metadata?.name === 'string' ? s.user.user_metadata.name.trim().slice(0, 80) : '';
+  return json(await withService(async (tx) => {
+    if (name) await tx`update public.users set name = ${name} where id = ${s.user.id} and name = ''`;
+    return sessionPayload(tx, s);
+  }));
+});
+
 /** Sets a new password. Needs the access token from the recovery/invite link (or a normal session). */
 export const resetPassword = route(async (req) => {
   const token = bearerToken(req);

@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { MailCheck } from 'lucide-react';
 import { AuthPage, FormMessage } from '@/components/layout/AuthPage';
+import { VerifyEmailCode } from '@/components/layout/VerifyEmailCode';
 import { PasswordInput } from '@/components/crm/PasswordInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { resendVerification, signUpWithPassword } from '@/lib/api/endpoints/auth';
+import { signUpWithPassword } from '@/lib/api/endpoints/auth';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/SessionProvider';
 import { EMAIL_RE, safeNext } from '@/lib/auth/safe-next';
@@ -48,19 +48,9 @@ function Signup() {
         router.replace(next);
       } else {
         setSentTo(r.email);
-        setCooldown(60);
       }
     },
   });
-  const [cooldown, setCooldown] = useState(0);
-  const resend = useMutation({ mutationFn: () => resendVerification(sentTo ?? ''), meta: { silent: true }, onSettled: () => setCooldown(60) });
-
-  // Supabase allows one resend a minute: count down instead of erroring.
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const id = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(id);
-  }, [cooldown]);
 
   const errors = {
     name: submitted && !name.trim() ? t('nameRequired') : null,
@@ -71,23 +61,14 @@ function Signup() {
 
   if (sentTo) {
     return (
-      <AuthPage title={t('checkInboxTitle')}>
-        <div className="space-y-5">
-          <div className="grid size-14 place-items-center rounded-2xl bg-brand-surface text-brand-ink">
-            <MailCheck className="size-7" aria-hidden="true" />
-          </div>
-          <p className="text-base text-gray-700">{t('checkInbox', { email: sentTo })}</p>
-          <p className="text-sm text-gray-600">{t('checkSpam')}</p>
-          {resend.isSuccess && <FormMessage tone="ok">{t('resent')}</FormMessage>}
-          {resend.error && !(isApiError(resend.error) && resend.error.code === 'rate_limited') && <FormMessage>{(resend.error as Error).message}</FormMessage>}
-          <Button variant="outline" className="h-12 w-full tabular-nums" disabled={resend.isPending || cooldown > 0} onClick={() => resend.mutate()}>
-            {resend.isPending ? t('sending') : cooldown > 0 ? t('resendIn', { seconds: cooldown }) : t('resendLink')}
-          </Button>
-          <Link href="/login" className="flex min-h-11 items-center justify-center text-sm font-semibold text-brand-ink hover:underline">
-            {t('backToSignIn')}
-          </Link>
-        </div>
-      </AuthPage>
+      <VerifyEmailCode
+        email={sentTo}
+        justSent
+        onVerified={(s) => {
+          signIn(s);
+          router.replace(next);
+        }}
+      />
     );
   }
 

@@ -6,6 +6,7 @@ import * as signup from '@/app/api/v1/auth/signup/route';
 import * as login from '@/app/api/v1/auth/login/route';
 import * as refresh from '@/app/api/v1/auth/refresh/route';
 import * as forgot from '@/app/api/v1/auth/forgot/route';
+import * as verifyEmail from '@/app/api/v1/auth/verify/route';
 import * as me from '@/app/api/v1/me/route';
 import * as workspaces from '@/app/api/v1/workspaces/route';
 import * as settings from '@/app/api/v1/workspaces/[id]/settings/route';
@@ -65,6 +66,13 @@ const fakeAuth: GoTrue = {
   },
   recover: async () => {},
   resend: async () => {},
+  async verifyEmailCode(email, code) {
+    const a = accounts.get(email);
+    const { ApiError } = await import('@/server/http');
+    if (!a || code !== '123456') throw new ApiError(422, 'invalid_code', 'That code is wrong or has expired.');
+    a.confirmed = true;
+    return { access_token: `at-${a.id}`, refresh_token: `rt-${a.id}`, expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: a.id, email, user_metadata: { name: 'Nadia Khan' } } };
+  },
   updatePassword: async () => {},
   signOut: async () => {},
   async invite(email, name) {
@@ -96,6 +104,18 @@ describe('email auth', () => {
 
     const rf = await call(refresh.POST, { method: 'POST', body: { refresh_token: ok.body.refresh_token } });
     expect(rf.body.access_token).toMatch(/^at2-/);
+  });
+
+  it('confirms a new account with the emailed code and signs in', async () => {
+    const e = email();
+    await call(signup.POST, { method: 'POST', body: { email: e, password: 'correct horse 1', name: 'Nadia Khan' } });
+    expect((await call(verifyEmail.POST, { method: 'POST', body: { email: e, code: 'abc' } })).status).toBe(422);
+    const wrong = await call(verifyEmail.POST, { method: 'POST', body: { email: e, code: '000000' } });
+    expect(wrong.body.error.code).toBe('invalid_code');
+    const ok = await call(verifyEmail.POST, { method: 'POST', body: { email: e.toUpperCase(), code: ' 123456 ' } });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ access_token: expect.any(String), user: { name: 'Nadia Khan' }, memberships: [] });
+    expect((await call(login.POST, { method: 'POST', body: { email: e, password: 'correct horse 1' } })).status).toBe(200);
   });
 
   it('rejects weak input and never reveals whether an email exists', async () => {

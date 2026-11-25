@@ -150,58 +150,55 @@ export default function OnboardingPage() {
       <p className="hidden text-sm font-semibold tracking-wide text-brand-ink uppercase lg:block">{t('step', { current: step, total })}</p>
 
       {step === 1 && (
-        <section key="s1" className="animate-rise mt-2 space-y-7">
+        <section key="s1" className="animate-rise mt-2 space-y-5">
           <div>
             <h1 className="font-heading text-[26px] font-bold tracking-tight text-gray-900 sm:text-[32px]">{t('businessTitle')}</h1>
-            <p className="mt-2 text-base text-gray-600">{t('businessHint')}</p>
+            <p className="mt-1.5 text-base text-gray-600">{t('businessHint')}</p>
           </div>
           {templates.isError ? (
             <ErrorState onRetry={() => templates.refetch()} />
           ) : templates.isLoading ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
               {Array.from({ length: 6 }, (_, i) => (
-                <div key={i} className="h-[92px] animate-pulse rounded-2xl bg-card shadow-card" />
+                <div key={i} className="h-[76px] animate-pulse rounded-2xl bg-card shadow-card sm:h-[118px]" />
               ))}
             </div>
           ) : (
-            <div role="radiogroup" aria-label={t('businessTitle')} className="stagger grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div role="radiogroup" aria-label={t('businessTitle')} className="stagger grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
               {sorted.map((tpl) => {
                 const Icon = ICONS[tpl.key] ?? Building2;
                 const active = tpl.key === templateKey;
-                const stageCount = tpl.pipelines.reduce((a, p) => a + p.stages.length, 0);
                 return (
                   <button
                     key={tpl.key}
                     type="button"
                     role="radio"
                     aria-checked={active}
+                    aria-describedby={`tpl-${tpl.key}-desc`}
                     onClick={() => setTemplateKey(tpl.key)}
                     className={cn(
-                      'lift press relative flex items-start gap-4 rounded-2xl border bg-card p-4 text-start shadow-card outline-none',
+                      'lift press relative flex min-h-[76px] flex-col items-start gap-2 rounded-2xl border bg-card p-3 text-start shadow-card outline-none sm:p-3.5',
                       active ? 'border-transparent ring-2 ring-brand' : 'hover:border-gray-300',
                     )}
                   >
                     <span
-                      className={cn('grid size-12 shrink-0 place-items-center rounded-2xl transition-colors duration-300', active ? 'bg-brand text-on-brand shadow-raised' : 'bg-brand-surface text-brand-ink')}
+                      className={cn('grid size-9 shrink-0 place-items-center rounded-xl transition-colors duration-300 sm:size-10', active ? 'bg-brand text-on-brand shadow-raised' : 'bg-brand-surface text-brand-ink')}
                       aria-hidden="true"
                     >
-                      <Icon className="size-6" />
+                      <Icon className="size-5" />
                     </span>
-                    <span className="min-w-0 flex-1 pe-6">
-                      <span className="block font-heading text-[15px] font-semibold text-gray-900">{tpl.name}</span>
-                      <span className="mt-0.5 line-clamp-2 block text-[13px] leading-snug text-gray-600">{tpl.description}</span>
-                      <span className="mt-2 block text-xs font-medium text-gray-500">
-                        {t('stagesCount', { count: stageCount })} · {t('fieldsCount', { count: tpl.custom_fields.length })}
-                      </span>
+                    <span className="min-w-0 pe-5">
+                      <span className="block font-heading text-sm leading-tight font-semibold text-gray-900 sm:text-[15px]">{tpl.name}</span>
+                      <span id={`tpl-${tpl.key}-desc`} className="mt-0.5 line-clamp-2 hidden text-xs leading-snug text-gray-600 sm:block">{tpl.description}</span>
                     </span>
                     <span
                       aria-hidden="true"
                       className={cn(
-                        'absolute end-3 top-3 grid size-6 place-items-center rounded-full border-2 transition-all duration-200',
+                        'absolute end-2.5 top-2.5 grid size-5 place-items-center rounded-full border-2 transition-all duration-200',
                         active ? 'scale-100 border-brand bg-brand text-on-brand' : 'border-gray-300 bg-card',
                       )}
                     >
-                      {active && <Check className="size-3.5" strokeWidth={3} />}
+                      {active && <Check className="size-3" strokeWidth={3} />}
                     </span>
                   </button>
                 );
@@ -210,52 +207,37 @@ export default function OnboardingPage() {
           )}
 
           {selected && (
-            <div key={selected.key} className="animate-rise overflow-hidden rounded-2xl border bg-card shadow-card">
-              <div className="flex items-center gap-2 border-b bg-brand-surface/40 px-5 py-3.5">
+            <div key={selected.key} className="animate-rise space-y-3 rounded-2xl border bg-card p-4 shadow-card">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
                 <ListChecks className="size-4 text-brand-ink" aria-hidden="true" />
-                <p className="text-sm font-semibold text-gray-900">{t('willCreate')}</p>
-              </div>
-              <div className="space-y-5 p-5">
-                <div>
-                  <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-gray-500 uppercase">
-                    <Workflow className="size-3.5" aria-hidden="true" />
-                    {t('stages')}
-                  </p>
-                  {selected.pipelines.map((p) => (
-                    <div key={p.name} className="mt-3">
-                      <p className="mb-2 text-sm font-medium text-gray-800">{p.name}</p>
-                      <div className="flex flex-wrap items-center gap-1">
-                        {p.stages.map((st, i) => (
-                          <span key={st.name} className="flex items-center gap-1">
-                            <span
-                              className={cn(
-                                'rounded-full px-3 py-1 text-xs font-semibold',
-                                st.kind === 'won' ? 'bg-green-50 text-green-800' : st.kind === 'lost' ? 'bg-gray-100 text-gray-600' : 'bg-brand-surface text-brand-ink',
-                              )}
-                            >
-                              {st.name}
-                            </span>
-                            {i < p.stages.length - 1 && <ChevronRight className="size-3.5 text-gray-300 rtl:rotate-180" aria-hidden="true" />}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                {t('willCreate')}
+              </p>
+              {selected.pipelines.map((p) => (
+                <div key={p.name} className="flex flex-wrap items-center gap-1">
+                  <Workflow className="me-1 size-3.5 text-gray-500" aria-hidden="true" />
+                  <span className="sr-only">{t('stages')}</span>
+                  {p.stages.map((st, i) => (
+                    <span key={st.name} className="flex items-center gap-1">
+                      <span
+                        className={cn(
+                          'rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                          st.kind === 'won' ? 'bg-green-50 text-green-800' : st.kind === 'lost' ? 'bg-gray-100 text-gray-600' : 'bg-brand-surface text-brand-ink',
+                        )}
+                      >
+                        {st.name}
+                      </span>
+                      {i < p.stages.length - 1 && <ChevronRight className="size-3 text-gray-300 rtl:rotate-180" aria-hidden="true" />}
+                    </span>
                   ))}
                 </div>
-                <div>
-                  <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-gray-500 uppercase">
-                    <ListChecks className="size-3.5" aria-hidden="true" />
-                    {t('fields')}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {selected.custom_fields.map((fd) => (
-                      <span key={fd.key} className="rounded-lg border bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700">
-                        {fd.label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              ))}
+              {selected.custom_fields.length > 0 && (
+                <p className="truncate text-xs text-gray-600">
+                  <span className="font-semibold tracking-wide text-gray-500 uppercase">{t('fields')}</span>
+                  {' · '}
+                  {selected.custom_fields.map((fd) => fd.label).join(', ')}
+                </p>
+              )}
             </div>
           )}
         </section>

@@ -20,6 +20,8 @@ export interface GoTrue {
   refresh(refreshToken: string): Promise<AuthSession>;
   recover(email: string, redirectTo: string): Promise<void>;
   resend(email: string, redirectTo: string): Promise<void>;
+  /** Confirms a sign-up with the code from the email ({{ .Token }} in the "Confirm signup" template). */
+  verifyEmailCode(email: string, code: string): Promise<AuthSession>;
   updatePassword(accessToken: string, password: string): Promise<void>;
   signOut(accessToken: string): Promise<void>;
   /** Service role: invite someone by email (creates the auth user, sends a set-password link). */
@@ -56,7 +58,10 @@ function mapError(status: number, body: GoTrueError): ApiError {
   if (code === 'invalid_credentials' || (code === 'invalid_grant' && /credentials/i.test(text))) {
     return new ApiError(401, 'invalid_credentials', 'Email or password is incorrect');
   }
-  if (code === 'email_not_confirmed') return new ApiError(403, 'email_not_confirmed', 'Please confirm your email first. Check your inbox for the link.');
+  if (code === 'email_not_confirmed') return new ApiError(403, 'email_not_confirmed', 'Please confirm your email first. Check your inbox for the code.');
+  if (code === 'otp_expired' || code === 'otp_disabled' || (status === 403 && /token/i.test(text))) {
+    return new ApiError(422, 'invalid_code', 'That code is wrong or has expired. Check the latest email or send a new code.');
+  }
   if (code === 'user_already_exists' || code === 'email_exists') return new ApiError(409, 'email_taken', 'An account with this email already exists. Sign in instead.');
   if (code === 'weak_password') return new ApiError(422, 'weak_password', text);
   if (code === 'same_password') return new ApiError(422, 'same_password', 'Choose a password different from your current one');
@@ -124,6 +129,9 @@ const supabaseGoTrue: GoTrue = {
   },
   async resend(email, redirectTo) {
     await call(`/resend?redirect_to=${encodeURIComponent(redirectTo)}`, { body: { type: 'signup', email } });
+  },
+  async verifyEmailCode(email, code) {
+    return toSession(await call('/verify', { body: { type: 'email', email, token: code } }));
   },
   async updatePassword(accessToken, password) {
     await call('/user', { method: 'PUT', bearer: accessToken, body: { password } });

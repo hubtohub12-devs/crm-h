@@ -6,11 +6,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { AuthPage, FormMessage } from '@/components/layout/AuthPage';
+import { VerifyEmailCode } from '@/components/layout/VerifyEmailCode';
 import { PasswordInput } from '@/components/crm/PasswordInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { resendVerification, signInWithPassword } from '@/lib/api/endpoints/auth';
+import { signInWithPassword } from '@/lib/api/endpoints/auth';
 import { isApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/SessionProvider';
 import { EMAIL_RE, safeNext } from '@/lib/auth/safe-next';
@@ -34,6 +35,7 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     if (hydrated && session) router.replace(next);
@@ -47,13 +49,26 @@ function Login() {
       router.replace(next);
     },
   });
-  const resend = useMutation({ mutationFn: () => resendVerification(email.trim()), meta: { silent: true } });
 
   const emailError = submitted && !EMAIL_RE.test(email.trim()) ? t('invalidEmail') : null;
   const code = isApiError(login.error) ? login.error.code : null;
   const loginError = login.error
     ? code === 'email_not_confirmed' ? t('notConfirmed') : code === 'rate_limited' ? t('tooMany') : (login.error as Error).message
     : null;
+
+  if (verifying) {
+    return (
+      <VerifyEmailCode
+        email={email.trim()}
+        justSent={false}
+        onBack={() => setVerifying(false)}
+        onVerified={(s) => {
+          signIn(s);
+          router.replace(next);
+        }}
+      />
+    );
+  }
 
   return (
     <AuthPage title={t('welcome', { app: branding.appName })} subtitle={t('subtitle')}>
@@ -86,8 +101,8 @@ function Login() {
           <FormMessage>
             {loginError}
             {code === 'email_not_confirmed' && (
-              <button type="button" onClick={() => resend.mutate()} disabled={resend.isPending} className="ms-1 min-h-11 font-semibold underline">
-                {resend.isSuccess ? t('resent') : t('resendLink')}
+              <button type="button" onClick={() => setVerifying(true)} className="ms-1 min-h-11 font-semibold underline">
+                {t('enterCode')}
               </button>
             )}
           </FormMessage>

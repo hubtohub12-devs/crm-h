@@ -35,6 +35,7 @@ What every screen in `docs/CRM_BRIEF.md` (section 8) calls, the state of each en
 |---|---|---|---|---|---|---|
 | Login: send code | `/auth/otp/send` | POST | `phone` | `challenge_id, expires_at` (dev: `debug_code`) | Sandbox | Needs change (PK-only phone; sandbox) |
 | Login: verify | `/auth/otp/verify` | POST | `phone, code` | `access_token` (`taimoor_tok_*`), `user, memberships` | Sandbox | Needs change (real session, #7) |
+| Sign up: confirm email | `/auth/verify` | POST | `email, code` (6–10 digits from the sign-up email) | same as `/auth/login`; `invalid_code` (422) when wrong or expired | Supabase Auth | Ready. Needs `{{ .Token }}` in the Supabase "Confirm signup" email template |
 | Session bootstrap | `/me` | GET | — | `user, active_workspace, effective_role, memberships[]` | Sandbox | Needs change (no `is_super_admin`; region fields) |
 | Branding | `/branding` | GET | `workspace_id` or `host` | `partner, workspace, matched_domain, branding` | Sandbox | Needs change (#8) |
 

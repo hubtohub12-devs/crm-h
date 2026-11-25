@@ -160,6 +160,15 @@ export const allHandlers = [
   }),
   http.post(`${BASE}/auth/forgot`, () => json({ sent: true })),
   http.post(`${BASE}/auth/resend`, () => json({ sent: true })),
+  // Demo mode signs up without a code; any known email confirms with 123456.
+  http.post(`${BASE}/auth/verify`, async ({ request }) => {
+    await latency();
+    const db = getDb();
+    const b = await body<{ email?: string; code?: string }>(request);
+    const user = db.users.find((u) => u.email && u.email.toLowerCase() === String(b.email ?? '').trim().toLowerCase());
+    if (!user || String(b.code ?? '').trim() !== '123456') return fail(422, 'invalid_code', 'That code is wrong or has expired. Check the latest email or send a new code.');
+    return json(mockSession(db, user));
+  }),
   http.post(`${BASE}/auth/reset`, () => json({ updated: true })),
   http.post(`${BASE}/auth/logout`, () => json({ signed_out: true })),
 

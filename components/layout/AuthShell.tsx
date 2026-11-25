@@ -134,7 +134,7 @@ export function AuthShell({
           <div className="min-w-0 flex-1">{mobileHeader ?? <p className="truncate font-heading font-semibold">{branding.appName}</p>}</div>
         </header>
         <main className="flex flex-1 flex-col">
-          <div className="mx-auto flex w-full max-w-[44rem] flex-1 flex-col px-5 py-8 sm:px-8 lg:justify-center lg:py-14">{children}</div>
+          <div className="mx-auto flex w-full max-w-[44rem] flex-1 flex-col px-5 py-6 sm:px-8 lg:justify-center lg:py-8">{children}</div>
         </main>
         {footer && (
           <div className="sticky bottom-0 z-10 border-t bg-card/95 backdrop-blur pb-safe">
